@@ -52,5 +52,32 @@ public class Fetch {
 
         return response.body();
     }
+    private class ChampDict {
+
+        private HashMap<String, String> dict;
+
+        private ChampDict() {
+            try{
+                this.dict = new HashMap<String, String>();
+                String response = get("http://ddragon.leagueoflegends.com/cdn/10.16.1/data/en_US/champion.json");
+                JsonReader jsonReader = Json.createReader(new StringReader(response));
+                JsonObject json = jsonReader.readObject();
+                JsonObject champs = json.getJsonObject("data");
+                for(String k : champs.keySet()) {
+                    JsonObject champ = champs.getJsonObject(k);
+                    dict.put(champ.getString("key"), champ.getString("name"));
+                }
+            } catch(Exception ex) {
+                ex.printStackTrace();
+            }
+
+        }
+
+        private String champ(int key) {
+            String temp = Integer.toString(key);
+            return dict.get(temp);
+        }
+
+    }
 
 }

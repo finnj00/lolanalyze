@@ -1,6 +1,5 @@
 package com.company;
 
-import com.company.util.ChampDict;
 import com.company.util.Fetch;
 
 public class Main {
