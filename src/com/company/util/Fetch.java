@@ -8,8 +8,9 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.HashMap;
 
-// Class for getting info about a player given a key and username.
+// Fetches match information when given a username and api key.
 public class Fetch {
+
     private String key;
     private String user;
     private ChampDict dict;
@@ -20,19 +21,22 @@ public class Fetch {
         this.user = user;
         this.dict = new ChampDict();
     }
-    public void match() {
+
+    // Returns the heroes played for the last num number of matches.
+    public void prevMatches(int num) {
         try {
-            String response =
+            // Searches summoner API to retrieve the accountId associated with the given username
+            JsonObject summoner =
                     get("https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-name/" + user + "?api_key=" + key);
-            JsonReader jsonReader = Json.createReader(new StringReader(response));
-            JsonObject json = jsonReader.readObject();
-            String matches = get("https://na1.api.riotgames.com/lol/match/v4/matchlists/by-account/"
-                    + json.getString("accountId") + "?api_key=" + key);
-            JsonReader matchReader = Json.createReader(new StringReader(matches));
-            JsonObject matchJson = matchReader.readObject();
-            for(int i = 0; i < 10; i++) {
-                int key = matchJson.getJsonArray("matches").getJsonObject(i).getInt("champion");
-                System.out.println(dict.champ(key));
+            // Uses the accoundId to get information on the match history of that account
+            JsonObject matches = get("https://na1.api.riotgames.com/lol/match/v4/matchlists/by-account/"
+                    + summoner.getString("accountId") + "?api_key=" + key);
+            for(int i = 0; i < num; i++) {
+
+                int key = matches.getJsonArray("matches").getJsonObject(i).getInt("champion");
+                System.out.print(dict.champ(key) + " ");
+                JsonNumber matchId = matches.getJsonArray("matches").getJsonObject(i).getJsonNumber("gameId");
+                matchSummary(matchId);
             }
 
 
@@ -41,7 +45,18 @@ public class Fetch {
         }
     }
 
-    private String get(String uri) throws Exception {
+    public void matchSummary(JsonNumber matchId) {
+        try{
+            JsonObject match = get("https://na1.api.riotgames.com/lol/match/v4/matches/" + matchId + "?api_key=" + key);
+            JsonObject teamStats = match.getJsonArray("teams").getJsonObject(0);
+            System.out.println(teamStats.getString("win"));
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    // Helper method for performing HTTP requests.
+    private JsonObject get(String uri) throws Exception {
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(uri))
@@ -49,8 +64,10 @@ public class Fetch {
 
         HttpResponse<String> response =
                 client.send(request, HttpResponse.BodyHandlers.ofString());
+        JsonReader jsonReader = Json.createReader(new StringReader(response.body()));
+        JsonObject json = jsonReader.readObject();
 
-        return response.body();
+        return json;
     }
     private class ChampDict {
 
@@ -59,10 +76,7 @@ public class Fetch {
         private ChampDict() {
             try{
                 this.dict = new HashMap<String, String>();
-                String response = get("http://ddragon.leagueoflegends.com/cdn/10.16.1/data/en_US/champion.json");
-                JsonReader jsonReader = Json.createReader(new StringReader(response));
-                JsonObject json = jsonReader.readObject();
-                JsonObject champs = json.getJsonObject("data");
+                JsonObject champs = get("http://ddragon.leagueoflegends.com/cdn/10.16.1/data/en_US/champion.json").getJsonObject("data");
                 for(String k : champs.keySet()) {
                     JsonObject champ = champs.getJsonObject(k);
                     dict.put(champ.getString("key"), champ.getString("name"));
