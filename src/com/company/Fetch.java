@@ -1,4 +1,4 @@
-package com.company.util;
+package com.company;
 
 import javax.json.*;
 import java.io.StringReader;
@@ -6,6 +6,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 // Fetches match information when given a username and api key.
@@ -14,7 +15,7 @@ public class Fetch {
     private String key;
     private String accountId;
     private ChampDict dict;
-
+    private ArrayList<JsonNumber> matchList;
 
     public Fetch(String key, String user) {
         try{
@@ -23,6 +24,7 @@ public class Fetch {
             this.accountId = summoner.getString("accountId");
             this.key = key;
             this.dict = new ChampDict();
+            this.matchList = new ArrayList<JsonNumber>();
         } catch(Exception ex) {
             throw new IllegalArgumentException();
         }
@@ -38,6 +40,7 @@ public class Fetch {
                 int key = match.getInt("champion");
                 System.out.print(dict.champ(key) + ": ");
                 JsonNumber matchId = match.getJsonNumber("gameId");
+                matchList.add(matchId);
                 matchSummary(matchId, key); // Prints small summary for each champ
             }
         } catch (Exception ex) {
@@ -46,7 +49,7 @@ public class Fetch {
     }
 
     // Used for printing a small summary of a given match including win/loss and kda.
-    public void matchSummary(JsonNumber matchId, int champId) {
+    private void matchSummary(JsonNumber matchId, int champId) {
         try{
             JsonObject match = get("https://na1.api.riotgames.com/lol/match/v4/matches/" + matchId + "?api_key=" + key);
             JsonObject stats = getParticipant(match.getJsonArray("participants"), champId).getJsonObject("stats");
@@ -82,7 +85,7 @@ public class Fetch {
         HttpResponse<String> response =
                 client.send(request, HttpResponse.BodyHandlers.ofString());
         if(response.statusCode() != 200) {
-            throw new Exception("No data found");
+            throw new Exception();
         }
         JsonReader jsonReader = Json.createReader(new StringReader(response.body()));
         JsonObject json = jsonReader.readObject();
