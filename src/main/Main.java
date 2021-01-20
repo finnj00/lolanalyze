@@ -1,7 +1,7 @@
-package com.company;
+package main;
 
 import java.util.Scanner;
-import com.*;
+import com.company.Fetch;
 
 public class Main {
 
